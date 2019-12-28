@@ -1,2 +1,2 @@
-make
-./HW3 -r (source file)
+$ make
+$ ./HW3 -r (source file)
