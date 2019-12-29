@@ -144,4 +144,6 @@ int main(int argc, char *argv[]){
     }
 
     pcap_loop(handle, -1, pcap_manage, NULL);
+
+    return 0;
 }
