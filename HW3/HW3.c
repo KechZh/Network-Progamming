@@ -12,6 +12,7 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include <netinet/ip6.h>
 
 struct ip_header{
     u_char ip_vhl;
@@ -46,6 +47,35 @@ struct udp_header{
 };
 
 int count = 1;
+char total_src_ip[1024][20];
+char total_dst_ip[1024][20];
+int total[1024] = {0};
+
+void ip_statistics(char src_ip[], char dst_ip[]){
+    for(int i = 0;; i++){
+        if(total[i] == 0){
+            strcpy(total_src_ip[i], src_ip);
+            strcpy(total_dst_ip[i], dst_ip);
+            total[i] = 1;
+            break;
+        }
+        else if(strcmp(src_ip, total_src_ip[i]) == 0 && strcmp(dst_ip, total_dst_ip[i]) == 0){
+            total[i]++;
+            break;
+        }
+    }
+}
+
+void print_total_ip(){
+    printf("Total IP Address\n");
+
+    for(int i = 0;; i++){
+        if(total[i] == 0)
+            break;
+        
+        printf("%15s -> %15s Total : %4d\n", total_src_ip[i], total_dst_ip[i], total[i]);
+    }
+}
 
 void dump_tcp(const bpf_u_int32 length, const u_char *content){
     struct ip_header *ip = (struct ip_header *) (content + ETHER_HDR_LEN);
@@ -78,6 +108,8 @@ void dump_ip(const bpf_u_int32 length, const u_char *content){
     printf("Source IP Address : %s\t", src_ip);
     printf("Destination IP Address : %s\n", dst_ip);
 
+    ip_statistics(src_ip, dst_ip);
+
     switch (ip->ip_p){
         case IPPROTO_TCP:
             printf("Protocol : TCP\n");
@@ -89,10 +121,20 @@ void dump_ip(const bpf_u_int32 length, const u_char *content){
             dump_udp(length, content);
             break;
         
+        case IPPROTO_ICMP:
+            printf("Protocol : ICMP\n");
+            break;
+
         default:
             printf("Protocol : %d\n", ip->ip_p);
             break;
     }
+}
+
+void dump_ipv6(const bpf_u_int32 length, const u_char *content){
+    struct ip6_hdr *ipv6 = (struct ip6_hdr *) content;
+    char src_ip[20] = {0};
+    char dst_ip[20] = {0};
 }
 
 void dump_ethernet(const bpf_u_int32 length, const u_char *content){
@@ -109,7 +151,29 @@ void dump_ethernet(const bpf_u_int32 length, const u_char *content){
     printf("Source MAC Address : %s\t", src_mac);
     printf("Destination MAC Address : %s\n", dst_mac);
 
-    dump_ip(length, content);
+    switch(ntohs(ethernet->ether_type)){
+        case ETHERTYPE_ARP:
+            printf("Protocol : ARP\n");
+            break;
+
+        case ETHERTYPE_IP:
+            printf("Protocol : IP\n");
+            dump_ip(length, content);
+            break;
+
+        case ETHERTYPE_REVARP:
+            printf("Protocol : REVARP\n");
+            break;
+
+        case ETHERTYPE_IPV6:
+            printf("Protocol : IPv6\n");
+            dump_ipv6(length, content);
+            break;
+    
+        default:
+            printf("Protocol : 0x%04x\n", ethernet->ether_type);
+            break;
+    }
 }
 
 void pcap_manage(u_char *arg, const struct pcap_pkthdr *header, const u_char *content){
@@ -144,6 +208,8 @@ int main(int argc, char *argv[]){
     }
 
     pcap_loop(handle, -1, pcap_manage, NULL);
+
+    print_total_ip();
 
     return 0;
 }
