@@ -131,12 +131,6 @@ void dump_ip(const bpf_u_int32 length, const u_char *content){
     }
 }
 
-void dump_ipv6(const bpf_u_int32 length, const u_char *content){
-    struct ip6_hdr *ipv6 = (struct ip6_hdr *) content;
-    char src_ip[20] = {0};
-    char dst_ip[20] = {0};
-}
-
 void dump_ethernet(const bpf_u_int32 length, const u_char *content){
     struct ether_header *ethernet = (struct ether_header *) content;
     char src_mac[20] = {0};
@@ -167,7 +161,6 @@ void dump_ethernet(const bpf_u_int32 length, const u_char *content){
 
         case ETHERTYPE_IPV6:
             printf("Protocol : IPv6\n");
-            dump_ipv6(length, content);
             break;
     
         default:
