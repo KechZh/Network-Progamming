@@ -12,7 +12,6 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <netinet/ip6.h>
 
 struct ip_header{
     u_char ip_vhl;
